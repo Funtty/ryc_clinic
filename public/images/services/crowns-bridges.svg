@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Dental Crowns &amp; Bridges">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1c3a37"/>
+      <stop offset="1" stop-color="#2f605b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="#e0b254" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#e0b254" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <rect width="800" height="500" fill="url(#glow)"/>
+  <circle cx="700" cy="60" r="150" fill="#e0b254" opacity="0.07"/>
+  <circle cx="90" cy="460" r="200" fill="#0e2a26" opacity="0.65"/>
+  <path d="M400 132 c-22 -10 -58 -14 -84 -7 c-48 13 -70 48 -70 94 c0 66 26 132 44 187 c9 29 22 44 40 44 c15 0 22 -20 28 -44 c9 -33 20 -59 42 -59 c22 0 33 26 42 59 c6 24 13 44 28 44 c18 0 31 -15 40 -44 c18 -55 44 -121 44 -187 c0 -46 -22 -81 -70 -94 c-26 -7 -62 -3 -84 7 z"
+        fill="none" stroke="#e0b254" stroke-width="6" stroke-linejoin="round"/>
+  <text x="400" y="330" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="34" fill="#faf7f2" font-style="italic">Crowns &amp; Bridges</text>
+  <text x="400" y="366" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" letter-spacing="4" fill="#e0b254">RYC DENTAL SERVICE</text>
+</svg>

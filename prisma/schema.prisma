@@ -1,0 +1,306 @@
+// RYC Dental Service — database schema
+//
+// Portability note:
+//   The `provider` below is set to "sqlite" for local development (zero external
+//   dependencies). The schema is intentionally written to be portable to
+//   PostgreSQL: change the provider to "postgresql", adjust `url`, and run the
+//   same migrations. Status/role fields use String + app-level validation
+//   (zod) instead of Prisma enums so the schema validates on SQLite.
+//
+// Time handling:
+//   All DateTime values are stored in UTC. Day-of-week schedules and blocked
+//   dates are expressed in the clinic's local timezone (see src/lib/site.ts)
+//   using "minutes since midnight" for times.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Identity & access
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Dashboard accounts for clinic staff (never patients). Least-privilege roles.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String?   @unique // optional staff login identifier (lowercase)
+  name         String
+  passwordHash String
+  role         String    @default("STAFF") // "ADMIN" | "STAFF" (validated in app)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions      Session[]
+  auditLogs     AuditLog[]     @relation("auditActor")
+  notifications Notification[]
+  patient       Patient?
+  uploads       FileAsset[]
+}
+
+// Uploaded images (dentist portraits, service artwork). Bytes live in the
+// database so they persist across Render deploys/restarts and multi-instance
+// setups; served read-only via /api/files/:id.
+model FileAsset {
+  id         String   @id @default(cuid())
+  name       String // original filename (display only)
+  mimeType   String // validated against an allow-list at upload time
+  size       Int // bytes
+  data       Bytes
+  userId     String // uploader
+  uploadedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([uploadedAt])
+}
+
+// Server-side sessions. Only the SHA-256 hash of a session token is persisted;
+// the raw token lives in an httpOnly, secure, SameSite cookie. lastSeenAt
+// drives a sliding idle timeout on top of the absolute expiresAt lifetime.
+model Session {
+  id         String    @id
+  userId     String
+  expiresAt  DateTime
+  lastSeenAt DateTime? // refreshed on activity; sessions idle longer than the
+  createdAt  DateTime  @default(now()) //     idle window are invalidated
+  userAgent  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clinical & commercial entities
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Dentist {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  title       String // e.g. "Lead Dentist · BDS, MSc"
+  bio         String
+  specialties String   @default("")
+  photoUrl    String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  schedules    DentistSchedule[]
+  services     Service[] // implicit many-to-many via ServiceDentist
+  appointments Appointment[]
+  blockedDates BlockedDate[]
+}
+
+model Service {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  name             String
+  shortDescription String
+  description      String
+  durationMinutes  Int
+  price            Int? // null => "price on consultation" (in minor currency units? no — store major units integer, e.g. 25000 = ₦25,000)
+  currency         String   @default("NGN")
+  priceLabel       String? // override text, e.g. "from ₦80,000"
+  imageUrl         String?
+  isActive         Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  dentists  Dentist[] // implicit m2m
+  bookedFor Appointment[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduling
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Clinic-wide weekly opening hours.
+model ClinicHours {
+  id           String  @id @default(cuid())
+  dayOfWeek    Int // 0=Sunday … 6=Saturday (clinic local timezone)
+  openMinutes  Int // minutes since local midnight, e.g. 480 = 08:00
+  closeMinutes Int // e.g. 1020 = 17:00
+  isClosed     Boolean @default(false)
+
+  @@unique([dayOfWeek])
+}
+
+// Per-dentist weekly work schedule. Availability is computed at query time from
+// these schedules combined with ClinicHours, BlockedDate and existing
+// appointments (an infinite look-ahead window with no hardcoded frontend slots).
+model DentistSchedule {
+  id           String  @id @default(cuid())
+  dentistId    String
+  dayOfWeek    Int
+  startMinutes Int
+  endMinutes   Int
+  isClosed     Boolean @default(false)
+
+  dentist Dentist @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+
+  @@unique([dentistId, dayOfWeek])
+}
+
+// Closure / no-service days. dentistId null => clinic-wide closure, otherwise
+// only that dentist is unavailable.
+model BlockedDate {
+  id        String   @id @default(cuid())
+  date      String // ISO date "YYYY-MM-DD" in clinic local timezone
+  dentistId String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  dentist Dentist? @relation(fields: [dentistId], references: [id], onDelete: Cascade)
+
+  @@unique([date, dentistId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patients & appointments
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Patient profiles are created on first booking. All PII is treated as
+// sensitive; never exposed outside authenticated/admin contexts. userId is
+// set when a patient gains a portal/booking account (patient self-service).
+model Patient {
+  id          String    @id @default(cuid())
+  userId      String?   @unique
+  email       String    @unique
+  firstName   String
+  lastName    String
+  phone       String
+  dateOfBirth DateTime?
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user                   User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appointments           Appointment[]
+  payments               Payment[]
+
+  @@index([lastName])
+  @@index([phone])
+}
+
+// Appointment status lifecycle:
+//   PENDING → CONFIRMED → {RESCHEDULED →} COMPLETED
+//        ↘ CANCELLED         ↘ NO_SHOW
+model Appointment {
+  id                 String    @id @default(cuid())
+  reference          String    @unique // human-friendly booking reference, e.g. "RYC-2A4F9C"
+  patientId          String
+  serviceId          String
+  dentistId          String?
+  startsAt           DateTime // UTC
+  endsAt             DateTime // UTC
+  durationMinutes    Int
+  status             String    @default("PENDING") // PENDING | CONFIRMED | RESCHEDULED | CANCELLED | COMPLETED | NO_SHOW
+  // Snapshot of contact details captured at booking time (patient profile may
+  // be edited later without rewriting historical booking records).
+  contactName        String
+  contactEmail       String
+  contactPhone       String
+  notes              String    @default("")
+  cancellationReason String    @default("")
+  cancelledAt        DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  patient Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  service Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  dentist Dentist? @relation(fields: [dentistId], references: [id], onDelete: SetNull)
+
+  payments Payment[]
+
+  @@index([dentistId, startsAt])
+  @@index([status])
+  @@index([startsAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Engagement & observability
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Enquiry {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    String   @default("NEW") // NEW | READ | ARCHIVED
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Immutable trail for sensitive operations (admin changes, auth events).
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String // e.g. "appointment.confirm", "auth.login", "service.update"
+  entityType String   @default("")
+  entityId   String   @default("")
+  meta       String   @default("") // JSON string
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation("auditActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  paymentId     String    @unique // our stable reference, e.g. PAY-<cuid>; shown to patient
+  appointmentId String
+  patientId     String
+  provider      String    @default("simulate") // simulate (sandbox/log) | paystack | bank_transfer
+  providerRef   String? // upstream intent/charge id returned by the provider
+  checkoutUrl   String    @default("") // where the patient authorises; fetched from provider at initiate
+  type          String    @default("DEPOSIT") // DEPOSIT | FULL_DUE | CLEARING
+  status        String    @default("PENDING") // PENDING | PAID | FAILED | CANCELLED | EXPIRED | REFUNDED
+  // Bank transfer flow (provider = bank_transfer): set when the patient clicks
+  // "I've made payment" — a CLAIM, never success. The payment stays PENDING
+  // until an admin checks the bank and confirms receipt.
+  patientReportedAt DateTime?
+  amountCents   Int
+  currency      String    @default("NGN")
+  dedupeKey     String    @unique // provider:appointmentId:type — safe against duplicate intents
+  attempt       Int       @default(1)
+  lastError     String    @default("")
+  providerEvent String    @default("") // server-side verification/webhook payload echo (NOT from browser)
+  reportedBy    String    @default("SERVER") // SERVER (authoritative) | MANUAL
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  paidAt        DateTime?
+  expiresAt     DateTime?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  @@index([appointmentId])
+  @@index([patientId])
+  @@index([status])
+  @@index([providerRef])
+}

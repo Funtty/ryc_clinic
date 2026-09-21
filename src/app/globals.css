@@ -1,0 +1,296 @@
+/* Self-hosted, subsetted font faces (Latin + Latin-Ext only). See
+ * src/app/fonts/inter.css and src/app/fonts/fraunces.css for the rationale —
+ * the stock @fontsource packages ship Cyrillic/Greek/Vietnamese subsets the
+ * clinic never renders, so we declare only the two subsets we use. */
+@import "./fonts/inter.css";
+@import "./fonts/fraunces.css";
+
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Design tokens — RYC Dental Service
+   Identity: clean, premium, calm. Deep "pine" green-teal, warm ivory, gold
+   accent, editorial serif display + Inter body.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, "Times New Roman", serif;
+
+  /* Pine — primary brand scale (deep green-teal) */
+  --color-pine-50: #f2f8f7;
+  --color-pine-100: #e0efed;
+  --color-pine-200: #c2e0dc;
+  --color-pine-300: #98cac4;
+  --color-pine-400: #6aada5;
+  --color-pine-500: #4a9189;
+  --color-pine-600: #3a7770;
+  --color-pine-700: #2f605b;
+  --color-pine-800: #284e4a;
+  --color-pine-900: #1c3a37;
+  --color-pine-950: #102825;
+
+  /* Gold — warm accent */
+  --color-gold-300: #ebc77c;
+  --color-gold-400: #e0b254;
+  --color-gold-500: #d19b33;
+  --color-gold-600: #b37f23;
+  --color-gold-700: #8f621f;
+
+  /* Warm neutrals */
+  --color-cream: #faf7f2;
+  --color-cream-strong: #f3ede1;
+  --color-ink: #16201f;
+  --color-ink-sub: #54625f;
+  --color-ink-faint: #5e6e6b; /* ≥4.5:1 on both white and cream (WCAG AA small text) */
+
+  /* Semantic — feedback states */
+  --color-success: #1c7d5a;
+  --color-error: #b91c1c;
+  --color-warning: #9a6a06;
+
+  --shadow-soft: 0 2px 8px rgb(16 40 37 / 0.06);
+  --shadow-card: 0 10px 30px -12px rgb(16 40 37 / 0.14);
+  --shadow-lift: 0 24px 60px -20px rgb(16 40 37 / 0.22);
+
+  /* Radius system — one scale for all panels, dialogs and controls */
+  --radius-panel: 1rem; /* dense cards · forms · admin surfaces */
+  --radius-panel-lg: 1.5rem; /* large public cards and modals */
+  --radius-pill: 624px; /* capsule buttons, badges, nav pills */
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.6s ease-out both;
+  --animate-slow-zoom: slow-zoom 16s ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slow-zoom {
+    from {
+      transform: scale(1.08);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-pine-200);
+    color: var(--color-pine-950);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* Keep anchored targets and the skip-link jump clear of the sticky header */
+  :target,
+  main#main-content {
+    scroll-margin-top: 5rem;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-pine-600);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Respect reduced-motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility section-pad {
+  padding-block: clamp(3.5rem, 8vw, 6.5rem);
+}
+
+@utility container-site {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  padding-inline: 1.25rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 1.75rem;
+  }
+  @media (min-width: 1024px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* Soft grid texture used behind hero sections */
+@utility bg-grid-faint {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgb(28 58 55 / 0.07) 1px,
+    transparent 0
+  );
+  background-size: 28px 28px;
+}
+
+/* ─── Form controls ─────────────────────────────────────────────────────── */
+@utility input-field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--color-pine-900) 22%, transparent);
+  background-color: #fff;
+  color: var(--color-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  padding: 0.625rem 0.875rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  &:hover {
+    border-color: color-mix(in oklab, var(--color-pine-900) 38%, transparent);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-pine-600);
+    box-shadow: 0 0 0 3px rgb(58 119 112 / 0.18);
+  }
+
+  &:disabled {
+    background-color: var(--color-cream-strong);
+    color: var(--color-ink-faint);
+    cursor: not-allowed;
+  }
+}
+
+@utility input-error {
+  border-color: rgb(185 28 28 / 0.65);
+
+  &:hover {
+    border-color: rgb(185 28 28 / 0.7);
+  }
+
+  &:focus {
+    border-color: rgb(185 28 28 / 0.85);
+    box-shadow: 0 0 0 3px rgb(185 28 28 / 0.14);
+  }
+}
+
+@utility field-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+@utility field-hint {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-ink-faint);
+}
+
+@utility field-error-text {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(185 28 28);
+}
+
+/* ─── Dialog / modal ────────────────────────────────────────────────────── */
+@layer base {
+  dialog {
+    margin: auto;
+    width: 100%;
+    max-width: min(calc(100vw - 2rem), 34rem);
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--color-ink);
+    overflow: visible;
+  }
+
+  dialog::backdrop {
+    background: rgb(16 40 37 / 0.55);
+    backdrop-filter: blur(2px);
+  }
+
+  dialog[open] {
+    animation: dialog-in 0.22s ease-out;
+  }
+  dialog[open]::backdrop {
+    animation: backdrop-in 0.22s ease-out;
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+  }
+  @keyframes backdrop-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+/* Skip link — keyboard users jump straight to content */
+@utility skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 60;
+  padding: 0.625rem 1.125rem;
+  border-radius: 9999px;
+  background-color: var(--color-pine-900);
+  color: var(--color-cream);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transform: translateY(-150%);
+  transition: transform 0.15s ease;
+
+  &:focus {
+    transform: translateY(0);
+  }
+}
