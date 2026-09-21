@@ -42,9 +42,13 @@ export function prepareTestsSchema(): {
     readFileSync(join(process.cwd(), "prisma", "schema.prisma"), "utf8"),
   );
   const url = testDatabaseUrl();
+  // `db push` needs the DIRECT connection (port 5432): the transaction pooler
+  // (6543) rejects DDL. Schema both so the push targets the `tests` schema.
+  const directUrl =
+    withSchema((process.env.DIRECT_URL ?? "").trim(), "tests") || url;
   writeFileSync(
     join(dir, ".env"),
-    `DATABASE_URL="${url}"\nDIRECT_URL="${url}"\n`,
+    `DATABASE_URL="${url}"\nDIRECT_URL="${directUrl}"\n`,
   );
   return {
     cwd: dir,

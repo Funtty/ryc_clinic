@@ -66,7 +66,8 @@ const nextConfig: NextConfig = {
   /**
    * Image pipeline.
    *
-   * All photography lives in /public (static, self-hosted) — no remote domains.
+   * Dentist/service photography is uploaded to Supabase Storage and served from
+   * the project's public bucket, so remote images must be allowlisted here.
    * `formats` prefers AVIF then WebP so the browser never pays for JPEG/PNG
    * when a smaller alternative is available. `deviceSizes` is bounded to the
    * breakpoints the design actually uses (the widest container is 76 rem), so
@@ -80,6 +81,13 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 64, 128, 256, 384, 512, 768],
     minimumCacheTTL: 604800,
     qualities: [75, 80],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "nzflofkccvwbonvfvdfg.supabase.co",
+        pathname: "/storage/v1/**",
+      },
+    ],
   },
 
   async headers() {
