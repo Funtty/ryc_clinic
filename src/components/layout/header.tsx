@@ -12,10 +12,9 @@ import { Container } from "@/components/ui/container";
 
 type HeaderProps = {
   hoursSummary?: string;
-  isStaff?: boolean;
 };
 
-export function Header({ hoursSummary, isStaff = false }: HeaderProps) {
+export function Header({ hoursSummary }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -88,19 +87,6 @@ export function Header({ hoursSummary, isStaff = false }: HeaderProps) {
                 </Link>
               );
             })}
-            {isStaff && (
-              <Link
-                href="/admin"
-                className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                  isActive("/admin")
-                    ? "bg-pine-100 text-pine-900"
-                    : "text-ink-sub hover:bg-pine-50 hover:text-pine-900",
-                )}
-              >
-                Admin
-              </Link>
-            )}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -157,14 +143,6 @@ export function Header({ hoursSummary, isStaff = false }: HeaderProps) {
                 </Link>
               );
             })}
-            {isStaff && (
-              <Link
-                href="/admin"
-                className="rounded-xl px-4 py-3 text-base font-medium text-ink-sub transition-colors hover:bg-pine-50 hover:text-pine-900"
-              >
-                Admin
-              </Link>
-            )}
             <div className="mt-3 flex flex-col gap-3 border-t border-pine-900/10 pt-4">
               <Button href="/booking" variant="primary" showArrow>
                 Book an Appointment

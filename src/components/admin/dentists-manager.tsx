@@ -98,7 +98,7 @@ export function DentistsManager({ dentists }: { dentists: Dentist[] }) {
       });
       const data = (await res.json()) as { error?: { message?: string } };
       if (!res.ok) {
-        setError(data.error?.message ?? "Could not add the dentist.");
+        setError(data.error?.message ?? "Could not add the technologist.");
         return;
       }
       setForm(emptyForm());
@@ -120,13 +120,13 @@ export function DentistsManager({ dentists }: { dentists: Dentist[] }) {
           className="mb-4 flex items-center gap-2 font-display text-lg font-semibold text-ink"
         >
           <Plus className="size-4 text-pine-800" aria-hidden="true" />
-          Add a dentist
+          Add a technologist
         </h2>
         <form onSubmit={create} noValidate className="grid gap-5 sm:grid-cols-2">
           <Field label="Full name" htmlFor="dent-name" required>
             <Input id="dent-name" value={form.name} onChange={set("name")} placeholder="Dr. Adaeze Nwosu" />
           </Field>
-          <Field label="Title" htmlFor="dent-title" hint="Show on the team page, e.g. “Lead Dentist · BDS, MSc”." required>
+          <Field label="Title" htmlFor="dent-title" hint="Show on the team page, e.g. “Lead Technologist”." required>
             <Input id="dent-title" value={form.title} onChange={set("title")} />
           </Field>
           <Field label="Bio" htmlFor="dent-bio" required className="sm:col-span-2">
@@ -155,17 +155,17 @@ export function DentistsManager({ dentists }: { dentists: Dentist[] }) {
           </div>
           <Button type="submit" disabled={busy}>
             <Stethoscope className="size-4" aria-hidden="true" />
-            {busy ? "Saving…" : "Add dentist"}
+            {busy ? "Saving…" : "Add technologist"}
           </Button>
         </form>
       </Card>
 
       <section aria-labelledby="existing-dentists">
         <h2 id="existing-dentists" className="mb-4 font-display text-lg font-semibold text-ink">
-          Existing dentists
+          Existing technologists
         </h2>
         {dentists.length === 0 && (
-          <EmptyState compact title="No dentists yet" message="Configure working hours on the Schedule page." />
+          <EmptyState compact title="No technologists yet" message="Configure working hours on the Schedule page." />
         )}
         <ul className="space-y-3">
           {dentists.map((d) => (

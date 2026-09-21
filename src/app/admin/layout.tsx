@@ -5,6 +5,7 @@ import { getSessionUserSafe } from "@/lib/server/session-cookie";
 import { requireStaff } from "@/lib/server/guards";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { InstallApp } from "@/components/admin/install-app";
 import { Logo } from "@/components/brand/logo";
 import { Container } from "@/components/ui/container";
 
@@ -61,6 +62,7 @@ export default async function AdminLayout({
               >
                 View public site
               </Link>
+              <InstallApp isAdmin={isAdmin} />
               <LogoutButton />
             </div>
           </Container>

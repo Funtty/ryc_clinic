@@ -312,19 +312,23 @@ export async function verifyDeposit(paymentId: string): Promise<VerifyResult> {
 
   if (next === "PAID") {
     const appt = payment.appointment;
-    void notifyClinic("Payment received", [
-      {
-        label: "Patient",
-        value: [appt.patient.firstName, appt.patient.lastName].filter(Boolean).join(" ") || "—",
-      },
-      { label: "Phone", value: appt.patient.phone ?? "—" },
-      { label: "Service", value: appt.service.name },
-      { label: "Dentist", value: appt.dentist?.name ?? "—" },
-      { label: "Appointment", value: appt.reference },
-      { label: "Payment", value: payment.paymentId },
-      { label: "Amount", value: formatMoney(payment.amountCents / 100, payment.currency) },
-      { label: "Status", value: "PAID — verified with the payment provider" },
-    ]);
+    void notifyClinic(
+      "Payment received",
+      [
+        {
+          label: "Patient",
+          value: [appt.patient.firstName, appt.patient.lastName].filter(Boolean).join(" ") || "—",
+        },
+        { label: "Phone", value: appt.patient.phone ?? "—" },
+        { label: "Service", value: appt.service.name },
+        { label: "Technologist", value: appt.dentist?.name ?? "—" },
+        { label: "Appointment", value: appt.reference },
+        { label: "Payment", value: payment.paymentId },
+        { label: "Amount", value: formatMoney(payment.amountCents / 100, payment.currency) },
+        { label: "Status", value: "PAID — verified with the payment provider" },
+      ],
+      payment.paymentId,
+    );
   }
 
   return { status: updated.status, paidAt: updated.paidAt };
@@ -541,20 +545,23 @@ export async function confirmBankTransferPayment(paymentId: string): Promise<Ver
 
   const appt = payment.appointment;
   if (appt) {
-    void notifyClinic("Deposit confirmed (bank transfer)", [
-      {
-        label: "Patient",
-        value:
-          [appt.patient.firstName, appt.patient.lastName].filter(Boolean).join(" ") || "—",
-      },
-      { label: "Phone", value: appt.patient.phone ?? "—" },
-      { label: "Service", value: appt.service.name },
-      { label: "Dentist", value: appt.dentist?.name ?? "—" },
-      { label: "Appointment", value: appt.reference },
-      { label: "Payment", value: changed.paymentId },
-      { label: "Amount", value: formatMoney(changed.amountCents / 100, changed.currency) },
-      { label: "Status", value: "PAID — confirmed against bank statement" },
-    ]);
+    void notifyClinic(
+      "Deposit confirmed (bank transfer)",
+      [
+        {
+          label: "Patient",
+          value:
+            [appt.patient.firstName, appt.patient.lastName].filter(Boolean).join(" ") || "—",
+        },
+        { label: "Phone", value: appt.patient.phone ?? "—" },
+        { label: "Service", value: appt.service.name },
+        { label: "Technologist", value: appt.dentist?.name ?? "—" },
+        { label: "Appointment", value: appt.reference },
+        { label: "Amount", value: formatMoney(changed.amountCents / 100, changed.currency) },
+        { label: "Status", value: "PAID — confirmed against bank statement" },
+      ],
+      changed.paymentId,
+    );
   }
 
   return { status: changed.status, paidAt: changed.paidAt };

@@ -41,7 +41,7 @@ export const site = {
   phoneAlt: "+234 811 442 0543", // alternate line
   phoneAltDisplay: "+234 811 442 0543",
   whatsapp: "2348141675948", // digits only (with country code), used for WhatsApp deep links
-  email: "Funtty57@gmail.com",
+  email: "rycdentalservice@gmail.com",
 
   currency: "NGN",
   currencySymbol: "₦",

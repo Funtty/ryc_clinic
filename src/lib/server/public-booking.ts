@@ -219,24 +219,28 @@ export async function createPublicBooking(raw: unknown): Promise<PublicBookingRe
       deposit = null;
     }
 
-    void notifyClinic("New appointment booking", [
-      { label: "Patient", value: `${firstName} ${lastName}`.trim() },
-      { label: "Phone", value: phone ?? "—" },
-      { label: "Email", value: emailNorm },
-      { label: "Service", value: created.service.name },
-      { label: "Dentist", value: created.dentist.name },
-      {
-        label: "Date & time",
-        value: `${formatDate(created.startsAt)} at ${formatTime(created.startsAt)}–${formatTime(created.endsAt)}`,
-      },
-      { label: "Reference", value: created.reference },
-      {
-        label: "Deposit",
-        value: deposit
-          ? `${formatMoney(deposit.amountCents / 100, deposit.currency)} (${deposit.status})`
-          : "None — pay at clinic",
-      },
-    ]);
+    void notifyClinic(
+      "New appointment booking",
+      [
+        { label: "Patient", value: `${firstName} ${lastName}`.trim() },
+        { label: "Phone", value: phone ?? "—" },
+        { label: "Email", value: emailNorm },
+        { label: "Service", value: created.service.name },
+        { label: "Technologist", value: created.dentist?.name ?? "—" },
+        {
+          label: "Date & time",
+          value: `${formatDate(created.startsAt)} at ${formatTime(created.startsAt)}–${formatTime(created.endsAt)}`,
+        },
+        { label: "Reference", value: created.reference },
+        {
+          label: "Deposit",
+          value: deposit
+            ? `${formatMoney(deposit.amountCents / 100, deposit.currency)} (${deposit.status})`
+            : "None — pay at clinic",
+        },
+      ],
+      created.reference,
+    );
 
     return { ...created, deposit };
   } catch (e) {

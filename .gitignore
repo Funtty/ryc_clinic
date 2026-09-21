@@ -22,6 +22,9 @@
 # production
 /build
 
+# runtime logs
+/logs/
+
 # misc
 .DS_Store
 *.pem

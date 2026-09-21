@@ -13,6 +13,7 @@ import { formatMoney } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CopyField } from "@/components/ui/copy-field";
 import { site } from "@/lib/site";
 
 type BankAccount = {
@@ -137,11 +138,12 @@ export function BankTransferCheckout({
                       <dd className="font-bold text-ink">{bankAccount.accountName}</dd>
                     </div>
                   )}
-                  <div className="flex justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4">
                     <dt className="text-ink-sub">Account number</dt>
-                    <dd className="font-display text-lg font-semibold tabular-nums text-ink">
-                      {bankAccount.accountNumber}
-                    </dd>
+                    <CopyField
+                      value={bankAccount.accountNumber ?? ""}
+                      className="font-display text-lg font-semibold tabular-nums text-ink"
+                    />
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-ink-sub">Bank</dt>

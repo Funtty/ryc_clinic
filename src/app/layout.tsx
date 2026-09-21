@@ -7,7 +7,6 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { site } from "@/lib/site";
 import { getSharedPresentableHours } from "@/lib/availability";
 import { buildOrganizationLd } from "@/lib/seo";
-import { getSessionUserSafe } from "@/lib/server/session-cookie";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.siteUrl),
@@ -61,8 +60,6 @@ export default async function RootLayout({
     .filter((h) => !h.isClosed && h.open)
     .map((h) => `${h.dayLabel} ${h.open}–${h.close}`)
     .join(" · ");
-  const user = await getSessionUserSafe();
-  const isStaff = user?.role === "ADMIN" || user?.role === "STAFF";
 
   return (
     <html lang="en">
@@ -89,7 +86,7 @@ export default async function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col">
         <SkipLink />
-        <Header hoursSummary={summary} isStaff={isStaff} />
+        <Header hoursSummary={summary} />
         <main id="main-content" tabIndex={-1} className="flex-1">
           {children}
         </main>

@@ -30,6 +30,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CopyField } from "@/components/ui/copy-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Textarea } from "@/components/ui/form";
 
@@ -86,7 +87,7 @@ type BookingConfirmation = {
 
 const STEP_TITLES = [
   "Service",
-  "Dentist",
+  "Technologist",
   "Date",
   "Time",
   "Your details",
@@ -360,7 +361,7 @@ export function BookingWizard({
 
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
           <SummaryRow label="Service" value={confirmation.serviceName} />
-          <SummaryRow label="Dentist" value={confirmation.dentistName} />
+          <SummaryRow label="Technologist" value={confirmation.dentistName} />
           <SummaryRow label="When" value={displayStart(confirmation.startIso)} />
           <SummaryRow
             label="Duration"
@@ -418,9 +419,12 @@ export function BookingWizard({
                     <dt className="text-ink-sub">Bank</dt>
                     <dd className="font-bold text-ink">{confirmation.deposit.bankAccount.bankName}</dd>
                   </div>
-                  <div className="flex justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4">
                     <dt className="text-ink-sub">Account</dt>
-                    <dd className="font-bold tabular-nums text-ink">{confirmation.deposit.bankAccount.accountNumber}</dd>
+                    <CopyField
+                      value={confirmation.deposit.bankAccount.accountNumber ?? ""}
+                      className="font-bold tabular-nums text-ink"
+                    />
                   </div>
                   {confirmation.deposit.bankAccount.accountName && (
                     <div className="flex justify-between gap-4">
@@ -574,7 +578,7 @@ export function BookingWizard({
         {offeringDentists.length === 0 ? (
           <EmptyState
             icon={Stethoscope}
-            title="No dentist available for this service"
+            title="No technologist available for this service"
             message="Please go back and choose a different service, or call us and we'll arrange it for you."
             action={
               <Button onClick={() => setStep(0)} variant="outline">
@@ -589,7 +593,7 @@ export function BookingWizard({
               ref={radiogroupRef}
               className="space-y-3"
               role="radiogroup"
-              aria-label="Choose a dentist"
+              aria-label="Choose a technologist"
             >
               <li role="presentation">
                 <Card
@@ -611,7 +615,7 @@ export function BookingWizard({
                         No preference
                       </p>
                       <p className="mt-0.5 text-sm text-ink-sub">
-                        We&rsquo;ll book you the first dentist free at your chosen
+                        We&rsquo;ll book you the first technologist free at your chosen
                         time.
                       </p>
                     </div>
@@ -743,10 +747,10 @@ export function BookingWizard({
         <>
           <EmptyState
             icon={CalendarCheck2}
-            title={dentistId ? "No free times with this dentist" : "No free times that day"}
+            title={dentistId ? "No free times with this technologist" : "No free times that day"}
             message={
               dentistId
-                ? `${dateLabel()}: ${selectedDentist?.name ?? "This dentist"} has no free slots. Try another day or dentist.`
+                ? `${dateLabel()}: ${selectedDentist?.name ?? "This technologist"} has no free slots. Try another day or technologist.`
                 : "The clinic may be closed or fully booked that day. Pick another date or call us and we'll fit you in."
             }
             action={
@@ -764,7 +768,7 @@ export function BookingWizard({
           {dateLabel()}
           {dentistId && selectedDentist
             ? ` with ${selectedDentist.name}`
-            : " — the first available dentist is shown for each time"}
+            : " — the first available technologist is shown for each time"}
           .
         </p>
         <ul
@@ -928,8 +932,8 @@ export function BookingWizard({
     const summary: Array<{ label: string; value: string }> = [
       { label: "Service", value: service.name },
       {
-        label: "Dentist",
-        value: selectedDentist ? selectedDentist.name : "First available dentist",
+        label: "Technologist",
+        value: selectedDentist ? selectedDentist.name : "First available technologist",
       },
       { label: "When", value: displayStart(selectedSlot.startIso) },
       { label: "Duration", value: `${service.durationMinutes} minutes` },

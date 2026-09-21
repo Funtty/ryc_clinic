@@ -29,7 +29,7 @@ const ALL_LINKS: LinkItem[] = [
   { href: "/admin/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/admin/patients", label: "Patients", icon: Users },
   { href: "/admin/services", label: "Services", icon: Scissors, adminOnly: true },
-  { href: "/admin/dentists", label: "Dentists", icon: Stethoscope, adminOnly: true },
+  { href: "/admin/dentists", label: "Technologists", icon: Stethoscope, adminOnly: true },
   { href: "/admin/schedule", label: "Schedule", icon: Clock, adminOnly: true },
   { href: "/admin/users", label: "Staff users", icon: ShieldCheck, adminOnly: true },
   { href: "/admin/payments", label: "Payments", icon: CreditCard, adminOnly: true },

@@ -1,4 +1,5 @@
 import "server-only";
+import { appendFile, mkdir } from "node:fs/promises";
 import { env } from "@/lib/env";
 import { site } from "@/lib/site";
 
@@ -8,6 +9,17 @@ import { site } from "@/lib/site";
 // unreachable, the call is a silent no-op so it can never break a booking.
 
 const RESEND_API = "https://api.resend.com/emails";
+const LOG_FILE = "logs/clinic-alerts.log";
+
+async function logLine(message: string): Promise<void> {
+  const line = `${new Date().toISOString()} ${message}\n`;
+  try {
+    await mkdir("logs", { recursive: true });
+    await appendFile(LOG_FILE, line, "utf8");
+  } catch {
+    // Logging is best-effort; never break mail flow over a log write.
+  }
+}
 
 export type ClinicAlertRow = { label: string; value: string };
 
@@ -39,15 +51,26 @@ function buildRows(rows: ClinicAlertRow[]): { text: string; html: string } {
  * Send an alert to the clinic inbox. Returns false (and never throws) when the
  * email can't be delivered so callers can fire it without blocking a flow.
  */
-export async function notifyClinic(topic: string, rows: ClinicAlertRow[]): Promise<boolean> {
-  const recipient = env.CLINIC_NOTIFY_EMAIL?.trim();
+export async function notifyClinic(
+  topic: string,
+  rows: ClinicAlertRow[],
+  ref?: string,
+): Promise<boolean> {
+  // Resend matches the recipient against the account owner's address exactly
+  // (case-sensitive), so normalize before sending.
+  const recipient = env.CLINIC_NOTIFY_EMAIL?.trim().toLowerCase();
   const apiKey = env.RESEND_API_KEY?.trim();
   const from =
     env.EMAIL_FROM?.trim() || `"${site.name}" <onboarding@resend.dev>`;
-  if (!recipient || !apiKey) return false;
+  if (!recipient || !apiKey) {
+    await logLine(
+      `[clinic-alert] SKIPPED (not configured) topic=${topic} recipient=${recipient ?? "unset"} keySet=${!!apiKey}`,
+    );
+    return false;
+  }
 
   const { text, html } = buildRows(rows);
-  const subject = `${site.name} — ${topic}`;
+  const subject = `${site.name} — ${topic}${ref ? ` (${ref})` : ""}`;
   const footer =
     `${site.name}\n${site.phoneDisplay}\n${site.address.city}, ${site.address.country}`;
   const bodyText = `${topic}\n\n${text}\n\n—\n${footer}`;
@@ -67,12 +90,18 @@ export async function notifyClinic(topic: string, rows: ClinicAlertRow[]): Promi
       body: JSON.stringify({ from, to: [recipient], subject, text: bodyText, html: bodyHtml }),
     });
     if (!res.ok) {
-      console.warn(`[clinic-alert] Resend ${res.status}: ${await res.text()}`);
+      const detail = await res.text();
+      console.warn(`[clinic-alert] Resend ${res.status}: ${detail}`);
+      await logLine(`[clinic-alert] FAILED status=${res.status} topic=${topic} ref=${ref ?? "-"} detail=${detail.slice(0, 300)}`);
       return false;
     }
+    const body = (await res.json()) as { id?: string };
+    console.log(`[clinic-alert] delivered ${topic}${ref ? ` ${ref}` : ""}: ${body?.id ?? "sent"}`);
+    await logLine(`[clinic-alert] DELIVERED id=${body?.id ?? "-"} topic=${topic} ref=${ref ?? "-"}`);
     return true;
   } catch (err) {
     console.warn("[clinic-alert] delivery unavailable:", err);
+    await logLine(`[clinic-alert] ERROR topic=${topic} ref=${ref ?? "-"} err=${String(err)}`);
     return false;
   }
 }

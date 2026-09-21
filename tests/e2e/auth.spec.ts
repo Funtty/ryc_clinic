@@ -109,7 +109,7 @@ test.describe("administrator access", () => {
       ["/admin/appointments", "Appointments"],
       ["/admin/patients", "Patients"],
       ["/admin/services", "Services"],
-      ["/admin/dentists", "Dentists"],
+      ["/admin/dentists", "Technologists"],
       ["/admin/schedule", "Schedule"],
       ["/admin/users", "Staff users"],
       ["/admin/audit", "Audit log"],
