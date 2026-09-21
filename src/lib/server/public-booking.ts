@@ -37,6 +37,13 @@ export type PublicBookingResult = {
       bankName: string | null;
     } | null;
   } | null;
+  /**
+   * True when the service has a price but the deposit intent could NOT be
+   * started (provider outage, misconfiguration, …). The appointment still
+   * stands; the flag lets the UI say "slot held, payment unavailable" instead
+   * of pretending the service simply has no deposit.
+   */
+  depositError: boolean;
 };
 
 /**
@@ -213,11 +220,16 @@ export async function createPublicBooking(raw: unknown): Promise<PublicBookingRe
             intent.provider === "bank_transfer" ? bankAccountDetails() : null,
         };
       }
-    } catch {
+    } catch (e) {
       // Deposit initiation failure is NOT fatal: patient can pay at the
-      // clinic or retry. Appointment remains PENDING & slot held.
+      // clinic or retry. Appointment remains PENDING & slot held. But log it —
+      // a silent drop hides misconfiguration (e.g. no provider configured in
+      // production) from the clinic until patients complain.
+      console.error("[public-booking] deposit initiation failed:", e);
       deposit = null;
     }
+
+    const depositError = service.price != null && deposit === null;
 
     void notifyClinic(
       "New appointment booking",
@@ -236,13 +248,15 @@ export async function createPublicBooking(raw: unknown): Promise<PublicBookingRe
           label: "Deposit",
           value: deposit
             ? `${formatMoney(deposit.amountCents / 100, deposit.currency)} (${deposit.status})`
-            : "None — pay at clinic",
+            : depositError
+              ? "Online deposit unavailable — please set up manually"
+              : "None — pay at clinic",
         },
       ],
       created.reference,
     );
 
-    return { ...created, deposit };
+    return { ...created, deposit, depositError };
   } catch (e) {
     if (e instanceof AppError) throw e;
     const mapped = toAppError(e);

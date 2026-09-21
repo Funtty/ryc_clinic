@@ -16,6 +16,7 @@ import {
 import {
   registerPaymentProvider,
   simulateProvider,
+  type PaymentProvider,
 } from "@/lib/server/payments/provider";
 import { seedBase, cleanDb, nextStartAtAt } from "../helpers/backend";
 import type { Service } from "@prisma/client";
@@ -55,6 +56,7 @@ describe("payments — deposit intent + server verification", () => {
 
     expect(booking.deposit).toBeTruthy();
     expect(booking.deposit?.status).toBe("PENDING");
+    expect(booking.depositError).toBe(false);
     expect(booking.deposit?.amountCents).toBe(DEPOSIT_AMOUNT_MAJOR * 100);
     expect(booking.deposit?.currency).toBe("NGN");
     expect(booking.deposit?.paymentRef).toMatch(/^PAY-/);
@@ -102,8 +104,35 @@ describe("payments — deposit intent + server verification", () => {
       phone: "+2348000000",
     });
     expect(booking.deposit).toBeNull();
+    expect(booking.depositError).toBe(false); // unpriced service is by design, not a failure
     const count = await prisma.payment.count();
     expect(count).toBe(0);
+  });
+
+  it("stamps depositError when the provider fails to start a deposit (booking survives)", async () => {
+    const boom: PaymentProvider = {
+      id: "simulate",
+      async initiate() {
+        throw new Error("payments provider down");
+      },
+      async verify() {
+        return { providerStatus: "PENDING", providerEcho: "unused" };
+      },
+    };
+    registerPaymentProvider(boom);
+    try {
+      const { booking } = await seedBooking();
+      expect(booking.deposit).toBeNull();
+      expect(booking.depositError).toBe(true);
+      // A provider outage never loses the booking — the slot keeps standing.
+      const row = await prisma.appointment.findUnique({
+        where: { id: booking.id },
+        select: { status: true },
+      });
+      expect(row?.status).toBe("PENDING");
+    } finally {
+      registerPaymentProvider(simulateProvider);
+    }
   });
 
   it("is idempotent: a second create for the same appointment returns the SAME intent", async () => {

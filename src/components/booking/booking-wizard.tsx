@@ -83,6 +83,8 @@ type BookingConfirmation = {
       bankName: string | null;
     } | null;
   } | null;
+  /** True when the service has a price but the deposit couldn't be started. */
+  depositError?: boolean;
 };
 
 const STEP_TITLES = [
@@ -310,6 +312,7 @@ export function BookingWizard({
         endIso: b.endsAt,
         durationMinutes: b.durationMinutes,
         deposit: b.deposit ?? null,
+        depositError: Boolean(b.depositError),
       });
     } catch {
       setSubmitErrorCode("NETWORK");
@@ -369,7 +372,19 @@ export function BookingWizard({
           />
         </div>
 
-        <div className="mt-7 overflow-hidden rounded-2xl bg-pine-900 p-5 text-cream">
+        {!confirmation.deposit && confirmation.depositError && (
+          <Alert
+            tone="warning"
+            title="Payment setup is temporarily unavailable"
+            className="mt-6"
+          >
+            Your visit is still confirmed and your slot is held. Online payment
+            couldn&rsquo;t be started just now — you can pay at the clinic, or call
+            us and a team member will help you complete your deposit.
+          </Alert>
+        )}
+
+        <div className="mt-6 overflow-hidden rounded-2xl bg-pine-900 p-5 text-cream">
           <p className="flex items-center gap-2 text-sm font-semibold">
             <Info className="size-4 text-gold-400" aria-hidden="true" />
             What happens next
