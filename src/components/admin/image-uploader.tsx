@@ -25,8 +25,8 @@ type ImageUploaderProps = {
 
 /**
  * Upload a dentist/service image straight from the admin panel. The file is
- * POSTed to /api/admin/images (stored in the database) and `onChange` receives
- * the public /api/files/:id URL to save with the record.
+ * POSTed to /api/admin/images (stored in Supabase Storage) and `onChange`
+ * receives the public Storage URL to save with the record.
  */
 export function ImageUploader({
   id,

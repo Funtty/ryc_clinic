@@ -16,9 +16,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// App connections use DATABASE_URL (the Supabase session/direct endpoint).
+// directUrl is used by Prisma's schema commands (db push, migrate, introspection)
+// so DDL never goes through a transaction-mode connection pooler.
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,24 +46,6 @@ model User {
   auditLogs     AuditLog[]     @relation("auditActor")
   notifications Notification[]
   patient       Patient?
-  uploads       FileAsset[]
-}
-
-// Uploaded images (dentist portraits, service artwork). Bytes live in the
-// database so they persist across Render deploys/restarts and multi-instance
-// setups; served read-only via /api/files/:id.
-model FileAsset {
-  id         String   @id @default(cuid())
-  name       String // original filename (display only)
-  mimeType   String // validated against an allow-list at upload time
-  size       Int // bytes
-  data       Bytes
-  userId     String // uploader
-  uploadedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([uploadedAt])
 }
 
 // Server-side sessions. Only the SHA-256 hash of a session token is persisted;

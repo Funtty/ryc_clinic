@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { errors } from "./errors";
 import { requireAdmin } from "./guards";
 import { recordAudit } from "./audit";
+import { deleteImageAsset, isStorageUrl, storageKeyFromUrl, uploadImageAsset } from "./storage";
 import type { SessionUser } from "./session";
 
 export const ALLOWED_IMAGE_MIMES = new Set([
@@ -14,20 +15,6 @@ export const ALLOWED_IMAGE_MIMES = new Set([
 ]);
 
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB
-
-const ASSET_PREFIX = "/api/files/";
-
-export function assetUrl(id: string): string {
-  return `${ASSET_PREFIX}${id}`;
-}
-
-export function isAssetUrl(url: string | null | undefined): url is string {
-  return url != null && url.length > 0 && url.startsWith(ASSET_PREFIX);
-}
-
-export function assetIdFromUrl(url: string): string | null {
-  return url.startsWith(ASSET_PREFIX) ? url.slice(ASSET_PREFIX.length) : null;
-}
 
 export function assertValidImage(file: {
   name?: string;
@@ -52,9 +39,9 @@ export function assertValidImage(file: {
 }
 
 /**
- * Store an uploaded image in the database (admin only) and return the public
- * URL used to serve it. Bytes live in the DB so files survive deployments,
- * restarts and multi-instance hosting.
+ * Upload an uploaded image to Supabase Storage (admin only) and return the
+ * public URL. Files live in the `uploads` bucket, so they survive deployments,
+ * restarts and multi-instance hosting without consuming database space.
  */
 export async function createImageAsset(
   user: SessionUser,
@@ -62,41 +49,34 @@ export async function createImageAsset(
 ): Promise<string> {
   requireAdmin(user);
   assertValidImage(file);
-  const asset = await prisma.fileAsset.create({
-    data: {
-      name: file.name,
-      mimeType: file.type,
-      size: file.size,
-      data: file.data as unknown as Uint8Array<ArrayBuffer>,
-      userId: user.id,
-    },
+  const url = await uploadImageAsset({
+    data: file.data,
+    contentType: file.type,
   });
   await recordAudit({
     userId: user.id,
     action: "admin.image.upload",
     entityType: "file",
-    entityId: asset.id,
+    entityId: storageKeyFromUrl(url) ?? url,
     meta: { name: file.name, mimeType: file.type, size: file.size },
   });
-  return assetUrl(asset.id);
+  return url;
 }
 
 /**
- * Delete a previously uploaded asset once nothing references it anymore.
+ * Delete a previously uploaded image once nothing references it anymore.
  * Called when a dentist/service replaces or clears an image that pointed at an
  * uploaded file.
  */
 export async function releaseAssetIfUnused(
   url: string | null | undefined,
 ): Promise<void> {
-  if (!isAssetUrl(url)) return;
-  const assetId = assetIdFromUrl(url);
-  if (!assetId) return;
+  if (!isStorageUrl(url)) return;
   const [dentistRefs, serviceRefs] = await Promise.all([
     prisma.dentist.count({ where: { photoUrl: url } }),
     prisma.service.count({ where: { imageUrl: url } }),
   ]);
   if (dentistRefs === 0 && serviceRefs === 0) {
-    await prisma.fileAsset.deleteMany({ where: { id: assetId } });
+    await deleteImageAsset(url);
   }
 }

@@ -32,6 +32,10 @@ type DentistLd = {
   photoUrl: string | null;
 };
 
+function absoluteUrl(pathOrUrl: string): string {
+  return /^https?:\/\//.test(pathOrUrl) ? pathOrUrl : `${site.siteUrl}${pathOrUrl}`;
+}
+
 function dentistLd(d: DentistLd) {
   return {
     "@type": "Physician",
@@ -39,7 +43,7 @@ function dentistLd(d: DentistLd) {
     name: d.name,
     jobTitle: d.title,
     url: `${site.siteUrl}/team#${d.slug}`,
-    image: d.photoUrl ? `${site.siteUrl}${d.photoUrl}` : undefined,
+    image: d.photoUrl ? absoluteUrl(d.photoUrl) : undefined,
     medicalSpecialty: "Dentistry",
     worksFor: { "@id": `${site.siteUrl}#clinic` },
   };

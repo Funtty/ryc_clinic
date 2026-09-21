@@ -3,11 +3,19 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  // DIRECT_URL is used by Prisma's DDL commands (db push / migrate) so schema
+  // changes never cross a transaction-mode pooler. Set it to the Supabase
+  // direct connection string.
+  DIRECT_URL: z.string().min(1, "DIRECT_URL is required for Prisma schema commands").optional(),
   // Signed/random secrets for sessions are derived from AUTH_SECRET in prod;
   // a development default keeps local runs frictionless.
   AUTH_SECRET: z.string().min(16).optional(),
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
+  // Supabase Storage (images). The service-role key never leaves the server.
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().min(1).optional(),
   // Payments (Phase 8): provider + Paystack secret for the production adapter.
   // Defaults to the offline "simulate" provider when unset.
   //   simulate      — dev/test sandbox that just echoes statuses

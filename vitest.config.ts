@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { testDatabaseUrl } from "./tests/helpers/test-db";
 
 export default defineConfig({
   resolve: {
@@ -13,10 +14,13 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     setupFiles: [],
     fileParallelism: false,
-    testTimeout: 20000,
+    testTimeout: 90000,
+    hookTimeout: 45000,
+    retry: 1,
     globalSetup: ["tests/helpers/global-setup.ts"],
     env: {
-      DATABASE_URL: "file:./test.db",
+      // Isolated `tests` schema in the Supabase project (never `public`).
+      DATABASE_URL: testDatabaseUrl(),
       // Deterministic provider for the suite: .env may enable bank_transfer or
       // paystack for dev/prod, but the engine tests drive `simulate` (bank /
       // paystack paths are exercised via synthetic rows and adapters).

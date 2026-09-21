@@ -25,6 +25,9 @@
 # runtime logs
 /logs/
 
+# one-time sqlite -> supabase migration artifact
+/scripts/_sqlite-dump.json
+
 # misc
 .DS_Store
 *.pem
