@@ -9,6 +9,7 @@ import {
 } from "@/lib/server/calendar";
 import { listDentistsAdmin } from "@/lib/server/dentists";
 import { AdminPageHeader } from "@/components/admin/admin-ui";
+import { DentistFilter } from "@/components/admin/dentist-filter";
 import { StatusPill } from "@/components/admin/status-pill";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -86,32 +87,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
           ))}
         </div>
 
-        <form method="get" className="flex items-center gap-2">
-          <input type="hidden" name="view" value={view} />
-          <input type="hidden" name="date" value={anchor} />
-          <label className="sr-only" htmlFor="dentist-filter">
-            Filter by dentist
-          </label>
-          <select
-            id="dentist-filter"
-            name="dentist"
-            defaultValue={dentistId ?? ""}
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              if (e.target.value) url.searchParams.set("dentist", e.target.value);
-              else url.searchParams.delete("dentist");
-              window.location.href = url.toString();
-            }}
-            className="input-field h-11 w-full sm:w-64"
-          >
-            <option value="">All dentists</option>
-            {dentists.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </form>
+        <DentistFilter
+          dentists={dentists}
+          value={dentistId ?? ""}
+          view={view}
+          date={anchor}
+        />
       </div>
 
       <CalendarTools view={view} anchor={anchor} dentistId={dentistId} />
